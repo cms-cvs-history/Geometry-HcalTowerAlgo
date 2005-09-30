@@ -1,0 +1,5 @@
+<environment>
+  <use name=Geometry/HcalTowerAlgo>
+  <bin file=HcalGeometryTest.cpp></bin>
+</environment>
+
