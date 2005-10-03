@@ -1,5 +1,8 @@
-<environment>
-  <use name=Geometry/HcalTowerAlgo>
-  <bin file=HcalGeometryTest.cpp></bin>
-</environment>
+<use name=Geometry/HcalTowerAlgo>
 
+<use name=FWCore/Framework>                                                                                                                                                                                    
+<flags SEAL_PLUGIN_NAME="testHcalGeometryESProducer">
+<library file=HcalGeometryAnalyzer.cc name=testHcalGeometryESProducer>
+</library>
+
+<bin file=HcalGeometryTest.cpp></bin>
