@@ -155,11 +155,16 @@ const CaloCellGeometry* HcalDDDGeometryLoader::makeCell(const HcalDetId& detId,
     } else {
       z         = r * sinh(eta2);
       thickness = 2. * hcalCell.halfSize();
+      r         = z/sinh(std::abs(eta));
     }
 #ifdef DebugLog
+    double r0  = z/sinh(std::abs(eta));
+    double r1  = z/sinh(std::abs(eta)+0.5*deta);
+    double r2  = z/sinh(std::abs(eta)-0.5*deta);
     LogDebug("HCalGeom") << "HcalDDDGeometryLoader::makeCell SubDet " << subdet
 			 << " eta = " << eta << " theta = " << theta
-			 << " r = " << r << " thickness = " << thickness;
+			 << " r = " << r << " thickness = " << thickness
+			 << " r0-r2 (" << r0 << ":" << r1 << ":" << r2 << ")";
 #endif
   } else {
     z          = hcalCell.depthMin();
@@ -168,10 +173,14 @@ const CaloCellGeometry* HcalDDDGeometryLoader::makeCell(const HcalDetId& detId,
     r          = z * tan(theta);
     thickness /= std::abs(cos(theta));
 #ifdef DebugLog
+    double r0  = z/sinh(std::abs(eta));
+    double r1  = z/sinh(std::abs(eta)+0.5*deta);
+    double r2  = z/sinh(std::abs(eta)-0.5*deta);
     LogDebug("HCalGeom") << "HcalDDDGeometryLoader::makeCell SubDet " << subdet
 			 << " eta = " << eta << " theta = " << theta
 			 << " z = " << z << " r = " << r << " thickness = "
-			 << thickness;
+			 << thickness << " r0-r2 (" << r0 << ":" << r1 << ":"
+			 << r2 << ")";
 #endif
   }
 
