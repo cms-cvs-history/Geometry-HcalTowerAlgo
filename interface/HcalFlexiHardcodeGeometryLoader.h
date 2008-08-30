@@ -3,8 +3,8 @@
 
 /** \class HcalFlexiHardcodeGeometryLoader
  *
- * $Date: 2008/04/21 22:19:36 $
- * $Revision: 1.6 $
+ * $Date: 2008/08/15 23:25:08 $
+ * $Revision: 1.1.2.1 $
  * \author F.Ratnikov, UMd
 */
 
@@ -18,7 +18,7 @@ class HcalFlexiHardcodeGeometryLoader
 
       HcalFlexiHardcodeGeometryLoader();
   
-      CaloSubdetectorGeometry* load(const HcalTopology* fTopology);
+      CaloSubdetectorGeometry* load(const HcalTopology& fTopology);
   
 };
 
