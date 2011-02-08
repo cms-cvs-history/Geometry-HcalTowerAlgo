@@ -386,17 +386,16 @@ CaloSubdetectorGeometry* HcalFlexiHardcodeGeometryLoader::load(const HcalTopolog
   if( 0 == hcalGeometry->parMgr() ) hcalGeometry->allocatePar (
      HcalGeometry::k_NumberOfParametersPerShape*HcalGeometry::k_NumberOfShapes,
      HcalGeometry::k_NumberOfParametersPerShape ) ;
-  // ugly kluge to extract H2 mode from the topology 
-  if (fTopology.firstHEDoublePhiRing() < 22) { // regular geometry
+  if (fTopology.mode() == HcalTopology::md_H2) {  // TB geometry
+    fillHBHO (hcalGeometry, makeHBCells(), true);
+    fillHBHO (hcalGeometry, makeHOCells(), false);
+    fillHE (hcalGeometry, makeHECells_H2());
+  }
+  else { // regular geometry
     fillHBHO (hcalGeometry, makeHBCells(), true);
     fillHBHO (hcalGeometry, makeHOCells(), false);
     fillHF (hcalGeometry, makeHFCells());
     fillHE (hcalGeometry, makeHECells());
-  }
-  else { // TB geometry
-    fillHBHO (hcalGeometry, makeHBCells(), true);
-    fillHBHO (hcalGeometry, makeHOCells(), false);
-    fillHE (hcalGeometry, makeHECells_H2());
   }
   return hcalGeometry;
 }
