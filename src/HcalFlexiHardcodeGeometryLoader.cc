@@ -64,35 +64,33 @@ namespace {
 
 
   // ----------> HB <-----------
-  std::vector <HBHOCellParameters> makeHBCells () {
+  std::vector <HBHOCellParameters> makeHBCells (const HcalTopology & topology) {
     const float HBRMIN = 181.1;
     const float HBRMAX = 288.8;
     
-    HBHOCellParameters cells [] = {
-      // eta, depth, firstPhi, stepPhi, deltaPhi, rMin, rMax, etaMin, etaMax
-      HBHOCellParameters ( 1, 1, 1, 1, 5, HBRMIN, HBRMAX, 0.087*0, 0.087*1),
-      HBHOCellParameters ( 2, 1, 1, 1, 5, HBRMIN, HBRMAX, 0.087*1, 0.087*2),
-      HBHOCellParameters ( 3, 1, 1, 1, 5, HBRMIN, HBRMAX, 0.087*2, 0.087*3),
-      HBHOCellParameters ( 4, 1, 1, 1, 5, HBRMIN, HBRMAX, 0.087*3, 0.087*4),
-      HBHOCellParameters ( 5, 1, 1, 1, 5, HBRMIN, HBRMAX, 0.087*4, 0.087*5),
-      HBHOCellParameters ( 6, 1, 1, 1, 5, HBRMIN, HBRMAX, 0.087*5, 0.087*6),
-      HBHOCellParameters ( 7, 1, 1, 1, 5, HBRMIN, HBRMAX, 0.087*6, 0.087*7),
-      HBHOCellParameters ( 8, 1, 1, 1, 5, HBRMIN, HBRMAX, 0.087*7, 0.087*8),
-      HBHOCellParameters ( 9, 1, 1, 1, 5, HBRMIN, HBRMAX, 0.087*8, 0.087*9),
-      HBHOCellParameters (10, 1, 1, 1, 5, HBRMIN, HBRMAX, 0.087*9, 0.087*10),
-      HBHOCellParameters (11, 1, 1, 1, 5, HBRMIN, HBRMAX, 0.087*10, 0.087*11),
-      HBHOCellParameters (12, 1, 1, 1, 5, HBRMIN, HBRMAX, 0.087*11, 0.087*12),
-      HBHOCellParameters (13, 1, 1, 1, 5, HBRMIN, HBRMAX, 0.087*12, 0.087*13),
-      HBHOCellParameters (14, 1, 1, 1, 5, HBRMIN, HBRMAX, 0.087*13, 0.087*14),
-      HBHOCellParameters (15, 1, 1, 1, 5, HBRMIN, 258.4,  0.087*14, 0.087*15),
-      HBHOCellParameters (15, 2, 1, 1, 5, 258.4,  HBRMAX, 0.087*14, 0.087*15),
-      HBHOCellParameters (16, 1, 1, 1, 5, HBRMIN, 190.4,  0.087*15, 0.087*16),
-      HBHOCellParameters (16, 2, 1, 1, 5, 190.4,  232.6,  0.087*15, 0.087*16)
-    };
-    int nCells = sizeof(cells)/sizeof(HBHOCellParameters);
+    float normalDepths[] = {HBRMIN, HBRMAX};
+    float ring15Depths[] = {HBRMIN, 258.4, HBRMAX};
+    float ring16Depths[] = {HBRMIN, 190.4, 232.6};
+    float slhcDepths[] = {HBRMIN, 214., 239., HBRMAX};
     std::vector <HBHOCellParameters> result;
-    result.reserve (nCells);
-    for (int i = 0; i < nCells; ++i) result.push_back (cells[i]);
+    for(int iring = 1; iring <= 16; ++iring)
+    {
+      int ndepth, startingDepth;
+      topology.depthBinInformation(HcalBarrel, iring, ndepth, startingDepth);
+      for(int idepth = startingDepth; idepth <= ndepth; ++idepth)
+      {
+        float * depths = slhcDepths;
+        if(topology.mode() != HcalTopology::md_SLHC)
+        {
+          if(iring == 15) depths = ring15Depths;
+          else if(iring == 16) depths = ring16Depths;
+          else depths = normalDepths;
+        }
+        float rmin = depths[idepth-1];
+        float rmax = depths[idepth];
+        result.push_back(HBHOCellParameters(iring, idepth, 1, 1, 5, rmin, rmax, (iring-1)*0.087, iring*0.087));
+      }
+    }
     return result;
   }
 
@@ -387,12 +385,12 @@ CaloSubdetectorGeometry* HcalFlexiHardcodeGeometryLoader::load(const HcalTopolog
      HcalGeometry::k_NumberOfParametersPerShape*HcalGeometry::k_NumberOfShapes,
      HcalGeometry::k_NumberOfParametersPerShape ) ;
   if (fTopology.mode() == HcalTopology::md_H2) {  // TB geometry
-    fillHBHO (hcalGeometry, makeHBCells(), true);
+    fillHBHO (hcalGeometry, makeHBCells(fTopology), true);
     fillHBHO (hcalGeometry, makeHOCells(), false);
     fillHE (hcalGeometry, makeHECells_H2());
   }
   else { // regular geometry
-    fillHBHO (hcalGeometry, makeHBCells(), true);
+    fillHBHO (hcalGeometry, makeHBCells(fTopology), true);
     fillHBHO (hcalGeometry, makeHOCells(), false);
     fillHF (hcalGeometry, makeHFCells());
     fillHE (hcalGeometry, makeHECells());
