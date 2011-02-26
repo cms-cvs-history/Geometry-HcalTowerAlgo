@@ -75,17 +75,18 @@ namespace {
     std::vector <HBHOCellParameters> result;
     for(int iring = 1; iring <= 16; ++iring)
     {
+      float * depths = slhcDepths;
+      if(topology.mode() != HcalTopology::md_SLHC)
+      {
+        if(iring == 15) depths = ring15Depths;
+        else if(iring == 16) depths = ring16Depths;
+        else depths = normalDepths;
+      }
+
       int ndepth, startingDepth;
       topology.depthBinInformation(HcalBarrel, iring, ndepth, startingDepth);
       for(int idepth = startingDepth; idepth <= ndepth; ++idepth)
       {
-        float * depths = slhcDepths;
-        if(topology.mode() != HcalTopology::md_SLHC)
-        {
-          if(iring == 15) depths = ring15Depths;
-          else if(iring == 16) depths = ring16Depths;
-          else depths = normalDepths;
-        }
         float rmin = depths[idepth-1];
         float rmax = depths[idepth];
         result.push_back(HBHOCellParameters(iring, idepth, 1, 1, 5, rmin, rmax, (iring-1)*0.087, iring*0.087));
@@ -126,46 +127,49 @@ namespace {
   }
 
   // ----------> HE <-----------
-  std::vector <HECellParameters> makeHECells () {
+  std::vector <HECellParameters> makeHECells (const HcalTopology & topology) {
+    std::vector <HECellParameters> result;
     const float HEZMIN = 400.458;
     const float HEZMID = 436.168;
     const float HEZMAX = 549.268;
-    
-    HECellParameters cells [] = {
-      // eta, depth, firstPhi, stepPhi, deltaPhi, zMin, zMax, etaMin, etaMax
-      HECellParameters ( 16, 3, 1, 1, 5,418.768,470.968, 0.087*15, 0.087*16),
-      HECellParameters ( 17, 1, 1, 1, 5,409.698,514.468, 0.087*16, 0.087*17),
-      HECellParameters ( 18, 1, 1, 1, 5,391.883,427.468, 0.087*17, 0.087*18),
-      HECellParameters ( 18, 2, 1, 1, 5,427.468,540.568, 0.087*17, 0.087*18),
-      HECellParameters ( 19, 1, 1, 1, 5, HEZMIN, HEZMID, 0.087*18, 0.087*19),
-      HECellParameters ( 19, 2, 1, 1, 5, HEZMID, HEZMAX, 0.087*18, 0.087*19),
-      HECellParameters ( 20, 1, 1, 1, 5, HEZMIN, HEZMID, 0.087*19, 1.74),
-      HECellParameters ( 20, 2, 1, 1, 5, HEZMID, HEZMAX, 0.087*19, 1.74),
-      HECellParameters ( 21, 1, 1, 2,10, HEZMIN, HEZMID, 1.74, 1.83),
-      HECellParameters ( 21, 2, 1, 2,10, HEZMID, HEZMAX, 1.74, 1.83),
-      HECellParameters ( 22, 1, 1, 2,10, HEZMIN, HEZMID, 1.83, 1.93),
-      HECellParameters ( 22, 2, 1, 2,10, HEZMID, HEZMAX, 1.83, 1.93),
-      HECellParameters ( 23, 1, 1, 2,10, HEZMIN, HEZMID, 1.93, 2.043),
-      HECellParameters ( 23, 2, 1, 2,10, HEZMID, HEZMAX, 1.93, 2.043),
-      HECellParameters ( 24, 1, 1, 2,10, HEZMIN, HEZMID, 2.043, 2.172),
-      HECellParameters ( 24, 2, 1, 2,10, HEZMID, HEZMAX, 2.043, 2.172),
-      HECellParameters ( 25, 1, 1, 2,10, HEZMIN, HEZMID, 2.172, 2.322),
-      HECellParameters ( 25, 2, 1, 2,10, HEZMID, HEZMAX, 2.172, 2.322),
-      HECellParameters ( 26, 1, 1, 2,10, HEZMIN, HEZMID, 2.322, 2.500),
-      HECellParameters ( 26, 2, 1, 2,10, HEZMID, HEZMAX, 2.322, 2.500),
-      HECellParameters ( 27, 1, 1, 2,10, HEZMIN,418.768, 2.500, 2.650),
-      HECellParameters ( 27, 2, 1, 2,10,418.768, HEZMID, 2.500, 2.650),
-      HECellParameters ( 27, 3, 1, 2,10, HEZMID, HEZMAX, 2.500, 2.650),
-      HECellParameters ( 28, 1, 1, 2,10, HEZMIN,418.768, 2.650, 2.868),
-      HECellParameters ( 28, 2, 1, 2,10,418.768, HEZMID, 2.650, 2.868),
-      HECellParameters ( 28, 3, 1, 2,10, HEZMID, HEZMAX, 2.650, 3.000),
-      HECellParameters ( 29, 1, 1, 2,10, HEZMIN, HEZMID, 2.868, 3.000),
-      HECellParameters ( 29, 2, 1, 2,10,418.768, HEZMID, 2.868, 3.000)
-    };
-    int nCells = sizeof(cells)/sizeof(HECellParameters);
-    std::vector <HECellParameters> result;
-    result.reserve (nCells);
-    for (int i = 0; i < nCells; ++i) result.push_back (cells[i]);
+    float normalDepths[] = {HEZMIN, HEZMID, HEZMAX};
+    float tripleDepths[] = {HEZMIN, 418.768, HEZMID, HEZMAX};
+    float slhcDepths[] = {HEZMIN, 418.768, HEZMID, 493., HEZMAX};
+    float ring16Depths[] = {418.768,470.968};
+    float ring16slhcDepths[] = {418.768, 450., 470.968};
+    float ring17Depths[] = {409.698,514.468};
+    float ring17slhcDepths[] = {409.698, 435., 460., 495., 514.468};
+    float ring18Depths[] = {391.883,427.468,540.568};
+    float ring18slhcDepths[] = {391.883, 439.,  467., 504. , 540.568};
+    float etaBounds[] = {0.087*15, 0.087*16, 0.087*17, 0.087*18,  0.087*19,
+                         1.74, 1.83,  1.93, 2.043, 2.172, 2.322, 2.500,
+                         2.650, 2.868, 3.000};
+
+    // count by ring - 16
+    bool slhc = (topology.mode() == HcalTopology::md_SLHC);
+    for(int iringm16=0; iringm16 <= 13; ++iringm16)
+    {
+      int iring = iringm16 + 16;
+      float * depths = slhcDepths;
+      if(iring == 16) depths = (slhc? ring16slhcDepths : ring16Depths);
+      else if(iring == 17) depths = (slhc ? ring17slhcDepths : ring17Depths);
+      else if(iring == 18) depths = (slhc ? ring18slhcDepths : ring18Depths);
+      else if(!slhc) depths = (iring >= topology.firstHETripleDepthRing() ? tripleDepths : normalDepths);
+      float etamin = etaBounds[iringm16];
+      float etamax = etaBounds[iringm16+1];
+      int ndepth, startingDepth;
+      topology.depthBinInformation(HcalEndcap, iring, ndepth, startingDepth);
+      for(int idepth = 0; idepth < ndepth; ++idepth)
+      {
+        int depthIndex = idepth + startingDepth;
+        float zmin = depths[idepth];
+        float zmax = depths[idepth+1];
+        int stepPhi = (iring >= topology.firstHEDoublePhiRing() ? 2 : 1);
+        int deltaPhi =  (iring >= topology.firstHEDoublePhiRing() ? 10 : 5);
+        result.push_back(HECellParameters(iring, depthIndex, 1, stepPhi, deltaPhi, zmin, zmax, etamin, etamax));
+      }
+    }
+
     return result;
   }
 
@@ -393,7 +397,7 @@ CaloSubdetectorGeometry* HcalFlexiHardcodeGeometryLoader::load(const HcalTopolog
     fillHBHO (hcalGeometry, makeHBCells(fTopology), true);
     fillHBHO (hcalGeometry, makeHOCells(), false);
     fillHF (hcalGeometry, makeHFCells());
-    fillHE (hcalGeometry, makeHECells());
+    fillHE (hcalGeometry, makeHECells(fTopology));
   }
   return hcalGeometry;
 }
