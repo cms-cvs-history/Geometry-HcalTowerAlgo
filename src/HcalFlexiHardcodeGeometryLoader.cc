@@ -53,6 +53,12 @@ CaloSubdetectorGeometry* HcalFlexiHardcodeGeometryLoader::load(const HcalTopolog
     fillHBHO (hcalGeometry, makeHOCells(), false);
     fillHE (hcalGeometry, makeHECells_H2());
   }
+  else if (fTopology.mode() == HcalTopology::md_SLHC) {  // SLHC geometry
+    fillHBHO (hcalGeometry, makeHBCells(fTopology), true);
+    fillHBHO (hcalGeometry, makeHOCells(), false);
+    fillHF (hcalGeometry, makeHFCells());
+    fillHE (hcalGeometry, makeHECells(fTopology));
+  }
   else { // regular geometry
     fillHBHO (hcalGeometry, makeHBCells(fTopology), true);
     fillHBHO (hcalGeometry, makeHOCells(), false);
@@ -79,6 +85,16 @@ std::vector <HcalFlexiHardcodeGeometryLoader::HBHOCellParameters> HcalFlexiHardc
   std::vector <HcalFlexiHardcodeGeometryLoader::HBHOCellParameters> result;
   for(int iring = 1; iring <= 16; ++iring) {
     std::vector<float> depths;
+
+      if (iring == 15) {
+        for (int i=0; i<3; ++i) depths.push_back(ring15Depths[i]);
+      } else if (iring == 16) {
+        for (int i=0; i<3; ++i) depths.push_back(ring16Depths[i]);
+      } else {
+        for (int i=0; i<2; ++i) depths.push_back(normalDepths[i]);
+      }
+
+/* only standard geometry for HB till tested
     if (topology.mode() != HcalTopology::md_SLHC) {
       if (iring == 15) {
 	for (int i=0; i<3; ++i) depths.push_back(ring15Depths[i]);
@@ -106,6 +122,7 @@ std::vector <HcalFlexiHardcodeGeometryLoader::HBHOCellParameters> HcalFlexiHardc
 	for (int i=0; i<4; ++i) depths.push_back(slhcDepths[i]);
       }
     }
+*/
     unsigned int ndepth=depths.size()-1;
     unsigned int startingDepth=1;
     float etaMin=(iring-1)*0.087;
@@ -221,6 +238,13 @@ std::vector<HcalFlexiHardcodeGeometryLoader::HECellParameters> HcalFlexiHardcode
 			   450.038,458.298, 466.558, 474.828, 483.088, 491.348,
 			   499.618,507.878, 516.138, 524.398, 532.668, 540.928,
 			   HEZMAX};
+  float ringZstart[14]  = {418.768, 409.698, 391.883, HEZMIN, HEZMIN, HEZMIN,
+                           HEZMIN,  HEZMIN,  HEZMIN, HEZMIN, HEZMIN, HEZMIN,
+                           HEZMIN,  HEZMIN};
+  float ringZend  [14]  = {470.968, 514.468, 540.568, HEZMAX, HEZMAX, HEZMAX,
+                           HEZMAX,  HEZMAX,  HEZMAX, HEZMAX, HEZMAX, HEZMAX,
+                           HEZMAX,  HEZMAX};
+  int   layerShift [3]  = {2, 1, -1};
 
   // count by ring - 16
   for(int iringm16=0; iringm16 <= 13; ++iringm16) {
@@ -240,27 +264,39 @@ std::vector<HcalFlexiHardcodeGeometryLoader::HECellParameters> HcalFlexiHardcode
 	for (int i=0; i<4; ++i) depths.push_back(tripleDepths[i]);
       else
 	for (int i=0; i<3; ++i) depths.push_back(normalDepths[i]);
+
     } else {
-      if (m_segmentation.size() >= (unsigned int)(iring)) {
-	int depth = m_segmentation[iring-1][0];
-	if (iring == 16)      depths.push_back(ring16Depths[0]);
-	else if (iring == 17) depths.push_back(ring17Depths[0]);
-	else if (iring == 18) depths.push_back(ring18Depths[0]);
-	else                  depths.push_back(layerDepths[depth]);
-	int layer = 1;
-	float lastDepth = depths[0];
-	for (unsigned int i=1; i<m_segmentation[iring-1].size(); ++i) {
-	  if (depth != m_segmentation[iring-1][i]) {
-	    depth = m_segmentation[iring-1][i];
-	    layer = i;
-	    if (layerDepths[depth] > lastDepth) {
-	      depths.push_back(layerDepths[depth]);
-	      lastDepth = layerDepths[depth];
-	    }
-	  }
-	}
-	if (layer <= 17) depths.push_back(HEZMAX);
-	if (iring == 16) startingDepth = 3;
+
+// get depth segmentation for each HE ring from HcalTopology 
+      std::vector<int> readoutDepths;
+      topology.getDepthSegmentation(iring, readoutDepths);
+      if( readoutDepths.size() > 0 ) {
+	int depth = readoutDepths[0];
+        depths.push_back(ringZstart[iring-16]);
+        int layer = 1;
+        float lastDepth = depths[0];
+        for (unsigned int i=1; i<readoutDepths.size(); ++i) {
+          layer = i;
+          if (iring <= 18) layer += layerShift[iring-16];
+          if (layerDepths[layer] > ringZend[iring-16]) 
+          {
+            depths.push_back(ringZend[iring-16]);
+            break;
+          }
+          if (depth != readoutDepths[i]) 
+          {
+            depth = readoutDepths[i];
+            if( (iring == 16 && depth > (HcalDetId::maxDepthHE)-2) ||
+                                depth > (HcalDetId::maxDepthHE) ) break;
+            if( layerDepths[layer] > lastDepth ) 
+            {
+              depths.push_back(layerDepths[layer]);
+              lastDepth = layerDepths[layer];
+            }
+          }
+        }
+        if (depths.back() < ringZend[iring-16]) depths.push_back(ringZend[iring-16]);
+        if (iring == 16) startingDepth = 3;
       } else {
 	if (iring == 16)     {for (int i=0; i<3; ++i) depths.push_back(ring16slhcDepths[i]); startingDepth = 3;}
 	else if (iring == 17) for (int i=0; i<5; ++i) depths.push_back(ring17slhcDepths[i]);
@@ -406,7 +442,7 @@ void HcalFlexiHardcodeGeometryLoader::fillHE (CaloSubdetectorGeometry* fGeometry
 	cellParams.push_back ( fabs( refPoint.eta() ) ) ;
 	cellParams.push_back ( fabs( refPoint.z() ) ) ;
 	/*
-	std::cout << "HcalFlexiHardcodeGeometryLoader::fillHE-> " << hid << refPoint << '/' << cellParams [0] << '/' << cellParams [1] << '/' << cellParams [2] << std::endl;
+ 	std::cout << "HcalFlexiHardcodeGeometryLoader::fillHE-> " << hid << refPoint << '/' << cellParams [0] << '/' << cellParams [1] << '/' << cellParams [2] << std::endl;
 	*/
 	fGeometry->newCell(refPoint,  refPoint,  refPoint, 
 			   CaloCellGeometry::getParmPtr(cellParams, 
